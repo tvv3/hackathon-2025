@@ -14,7 +14,8 @@ class PdoUserRepository implements UserRepositoryInterface
 {
     public function __construct(
         private readonly PDO $pdo,
-    ) {}
+    ) { //var_dump('connected');
+        }
 
     /**
      * @throws Exception
@@ -40,11 +41,38 @@ class PdoUserRepository implements UserRepositoryInterface
     public function findByUsername(string $username): ?User
     {
         // TODO: Implement findByUsername() method.
-        return null;
+        //return null;
+        $query = 'SELECT min(id) as min_id FROM users WHERE username = :username';
+        $statement = $this->pdo->prepare($query);
+        $statement->execute(['username' => $username]);
+        $data = $statement->fetch(PDO::FETCH_ASSOC);
+
+       if (!$data || empty($data['min_id'])) {
+            return null;
+        }
+
+       return $this->find((int)$data['min_id']);
     }
 
     public function save(User $user): void
     {
         // TODO: Implement save() method.
-    }
+
+         if ($user->id === null) {
+        // INSERT nou
+        $stmt = $this->pdo->prepare('INSERT INTO users (username, password_hash, created_at) VALUES (:username, :password_hash, :created_at)');
+        $success = $stmt->execute([
+            ':username' => $user->username,
+            ':password_hash' => $user->passwordHash,
+            ':created_at'=> $user->createdAt->format('Y-m-d H:i:s')
+        ]);
+    
+        if ($success) {
+            $user->id = (int)$this->pdo->lastInsertId();
+        }
+       // return $success;
+
+       }
+   }
+
 }

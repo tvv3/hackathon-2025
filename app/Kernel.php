@@ -48,7 +48,9 @@ class Kernel
             PDO::class                        => factory(function () {
                 static $pdo = null;
                 if ($pdo === null) {
-                    $pdo = new PDO('sqlite:'.$_ENV['DB_PATH']);
+                    $path=str_replace('\\','/',str_replace('app','',__DIR__)).$_ENV['DB_PATH'];
+                    //var_dump($path);//de comentat
+                    $pdo = new PDO('sqlite:'.$path);
                     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
                 }
@@ -70,12 +72,15 @@ class Kernel
         (require __DIR__.'/../config/routes.php')($app);
 
         // TODO: Handle session initialization
-
+        session_start();
         // Make current user ID globally available to twig templates
         // TODO: change the following line to set the user ID stored in the session, for when user is logged
-        $loggedInUserId = null;
+               
+        $loggedInUserId = $_SESSION['user']['id'] ?? null;
+        $loggedInUserName= $_SESSION['user']['username'] ?? null;
         $twig = $container->get(Twig::class);
         $twig->getEnvironment()->addGlobal('currentUserId', $loggedInUserId);
+        $twig->getEnvironment()->addGlobal('currentUserName', $loggedInUserName);//made by me
 
         return $app;
     }

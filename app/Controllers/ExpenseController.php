@@ -16,12 +16,13 @@ class ExpenseController extends BaseController
     public function __construct(
         Twig $view,
         private readonly ExpenseService $expenseService,
+       
     ) {
         parent::__construct($view);
     }
 
     public function index(Request $request, Response $response): Response
-    {
+    {   
         // TODO: implement this action method to display the expenses page
 
         // Hints:
@@ -30,11 +31,19 @@ class ExpenseController extends BaseController
         // - use the expense service to fetch expenses for the current user
 
         // parse request parameters
-        $userId = 1; // TODO: obtain logged-in user ID from session
+        $user = $_SESSION['user'] ?? null;
+        if (!$user) {
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+        $userId = $_SESSION['user']['id']; // TODO: obtain logged-in user ID from session
         $page = (int)($request->getQueryParams()['page'] ?? 1);
         $pageSize = (int)($request->getQueryParams()['pageSize'] ?? self::PAGE_SIZE);
 
-        $expenses = $this->expenseService->list($userId, $page, $pageSize);
+       $parsedBody = $request->getParsedBody();
+       $year = $parsedBody['year'] ?? null;
+       $month = $parsedBody['month'] ?? null;
+
+        $expenses = $this->expenseService->list($userId, $page, $pageSize, $year, $month);
 
         return $this->render($response, 'expenses/index.twig', [
             'expenses' => $expenses,
@@ -106,4 +115,20 @@ class ExpenseController extends BaseController
 
         return $response;
     }
+
+    public function importFromCsv(Request $request, Response $response): int
+    {
+        $user=$_SESSION['user']['id']??null;
+        $parsedBody = $request->getParsedBody();
+        $csvFile = $parsedBody['csv'] ?? null;
+
+        if ($user)
+        {
+        $nrRows=$this->expenseService->importFromCsv($user, $csvFile);
+        return $nrRows;
+        //$response->withHeader('Location', '/expenses')->withStatus(302);
+        }
+        return 0;
+    }
+  
 }

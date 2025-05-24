@@ -9,17 +9,20 @@ use App\Domain\Entity\User;
 use App\Domain\Repository\ExpenseRepositoryInterface;
 use DateTimeImmutable;
 use Psr\Http\Message\UploadedFileInterface;
-
+//noi
+use Exception;
 class ExpenseService
 {
     public function __construct(
         private readonly ExpenseRepositoryInterface $expenses,
     ) {}
 
-    public function list(User $user, int $year, int $month, int $pageNumber, int $pageSize): array
+    public function list(int $userId, int $pageNumber,
+     int $pageSize, int $year, int $month): array
     {
         // TODO: implement this and call from controller to obtain paginated list of expenses
-        return [];
+        $expenses= $this->expenses->getExpensesByUserPaginated($userId,$pageNumber, $pageSize, $year, $month);
+        return $expenses;
     }
 
     public function create(
@@ -45,7 +48,7 @@ class ExpenseService
     ): void {
         // TODO: implement this to update expense entity, perform validation, and persist
     }
-
+/*
     public function importFromCsv(User $user, UploadedFileInterface $csvFile): int
     {
         // TODO: process rows in file stream, create and persist entities
@@ -53,4 +56,87 @@ class ExpenseService
 
         return 0; // number of imported rows
     }
+*/
+    public function importFromCsv(int $userId, UploadedFileInterface $csvFile): int
+  {
+    $importedCount = 0;
+
+    // Open the CSV file stream
+    $stream = $csvFile->getStream();
+
+    // Rewind stream to start
+    $stream->rewind();
+
+    // Get the file handle from the stream
+    $handle = fopen('php://temp', 'r+');
+    if ($handle === false) {
+        throw new Exception('Failed to open temp stream');
+    }
+
+    // Copy stream content into temp handle (because PSR stream may not support fgetcsv)
+    while (!$stream->eof()) {
+        fwrite($handle, $stream->read(1024));
+    }
+    rewind($handle);
+    
+
+    while (($row = fgetcsv($handle)) !== false) {
+        // Assuming CSV columns in this order:
+        // date, category, amount (decimal), description
+
+        // Validate row length
+        if (count($row) < 4) {
+            // Skip invalid row or throw exception depending on your needs
+            continue;
+        }
+
+        [$dateStr, $description, $amount, $category] = $row;
+        //(date,description,amount,category)
+        // Parse and validate date (adjust format if needed)
+        try {
+            $date = new DateTimeImmutable($dateStr);
+        } catch (Exception $e) {
+            // Invalid date format, skip this row
+            continue;
+        }
+
+        // Validate category (you might want to check if it’s in your allowed categories)
+        if (empty($category)) {
+            continue;
+        }
+
+        // Parse amount - convert to cents (int)
+        // Assuming amount in decimal with dot, e.g. "123.45"
+        //$amountFloat = (float) $amountStr;
+        //$amountCents = (int) round($amountFloat * 100);
+
+        if ($amount <= 0) {
+            continue;
+        }
+
+        //todo: if duplicated row then continue after logging;
+
+        // Description can be empty or optional
+        $description = trim($description);
+
+        // Create Expense entity
+        $expense = new Expense(
+            null,           // id = null for new
+            $userId,
+            $date,
+            $category,
+            $amount,
+            $description
+        );
+
+        // Save expense
+        $this->expenses->save($expense);
+
+        $importedCount++;
+    }
+
+    fclose($handle);
+
+    return $importedCount;
+   }
 }

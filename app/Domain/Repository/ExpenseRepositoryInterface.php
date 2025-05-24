@@ -7,6 +7,7 @@ namespace App\Domain\Repository;
 use App\Domain\Entity\Expense;
 use App\Domain\Entity\User;
 
+
 interface ExpenseRepositoryInterface
 {
     // TODO: please review the list of methods below. Keep in mind these are just provided for guidance,
@@ -29,4 +30,16 @@ interface ExpenseRepositoryInterface
     public function averageAmountsByCategory(array $criteria): array;
 
     public function sumAmounts(array $criteria): float;
+
+    //noi 
+
+    public function getExpensesByUserPaginated(
+    int $userId,
+    int $page=1,
+    int $pageSize=20,
+    ?int $year = null,
+    ?int $month = null
+): array;
+
+  
 }

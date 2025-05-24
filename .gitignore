@@ -3,5 +3,6 @@
 .phpunit.result.cache
 vendor
 database/db.sqlite
+database/db.sdb
 var/*
 !var/.gitkeep
