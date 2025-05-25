@@ -84,7 +84,36 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
     public function countBy(array $criteria): int
     {
         // TODO: Implement countBy() method.
-        return 0;
+        //return 0;
+        //var_dump($year);
+
+    $sql = 'SELECT count(*) as nr FROM expenses WHERE user_id = :user_id';
+    
+    $params = [':user_id' => $criteria['userId']];
+
+    $year=$criteria['year']??null;
+    $month=$criteria['month']??null;
+    if ($year !== null) {
+        $sql .= ' AND strftime(\'%Y\', date) = :year';
+        $params[':year'] = (string)$year;
+    }
+
+    if ($month !== null) {
+        $sql .= ' AND strftime(\'%m\', date) = :month';
+        $params[':month'] = str_pad((string)$month, 2, '0', STR_PAD_LEFT);
+    }
+
+    // Prepare and execute with params
+    $stmt = $this->pdo->prepare($sql);
+    foreach ($params as $key => $value) {
+        $type = is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR;
+        $stmt->bindValue($key, $value, $type);
+    }
+    $stmt->execute();
+
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $result['nr'];
+
     }
 
     public function listExpenditureYears(User $user): array
@@ -134,9 +163,12 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
     ?int $year = null,
     ?int $month = null
 ): array {
+
+    //var_dump($year);
     $offset = ($page - 1) * $pageSize;
 
     $sql = 'SELECT * FROM expenses WHERE user_id = :user_id';
+    
     $params = [':user_id' => $userId];
 
     if ($year !== null) {
@@ -175,8 +207,12 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
             $row['description']
         );
     }
-
-    return $expenses;
+     $totalRows=$this->countBy(['userId'=>$userId,'year'=>$year,'month'=>$month]);
+    if ($pageSize!=0)
+     {$totalPages=ceil($totalRows/$pageSize);}
+    else
+     {$totalPages=1;}
+    return [$expenses,$totalPages];
 }
 
    

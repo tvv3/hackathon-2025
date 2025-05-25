@@ -11,7 +11,7 @@ use Slim\Views\Twig;
 use Psr\Http\Message\UploadedFileInterface;
 class ExpenseController extends BaseController
 {
-    private const PAGE_SIZE = 20;
+    private const PAGE_SIZE = 1;
 
     public function __construct(
         Twig $view,
@@ -42,16 +42,20 @@ class ExpenseController extends BaseController
         $page = (int)($request->getQueryParams()['page'] ?? 1);
         $pageSize = (int)($request->getQueryParams()['pageSize'] ?? self::PAGE_SIZE);
 
-       $parsedBody = $request->getParsedBody();
-       $year = $parsedBody['year'] ?? null;
-       $month = $parsedBody['month'] ?? null;
+       $queryParams = $request->getQueryParams();
+       $year = isset($queryParams['year']) ? (int)$queryParams['year'] : null;
+       $month = isset($queryParams['month']) ? (int)$queryParams['month'] : null;
 
-        $expenses = $this->expenseService->list($userId, $page, $pageSize, $year, $month);
-
+         //var_dump($year);
+        $totalPages=1;
+         $arr = $this->expenseService->list($userId, $page, $pageSize, $year, $month);
+         $expenses=$arr[0];
+         $totalPages=$arr[1];
         return $this->render($response, 'expenses/index.twig', [
             'expenses' => $expenses,
             'page'     => $page,
             'pageSize' => $pageSize,
+            'total' => $totalPages,
         ]);
     }
 

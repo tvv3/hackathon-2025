@@ -19,10 +19,11 @@ class ExpenseService
 
     public function list(int $userId, int $pageNumber,
      int $pageSize, ?int $year, ?int $month): array
-    {
+    {     
+        //var_dump($year);
         // TODO: implement this and call from controller to obtain paginated list of expenses
-        $expenses= $this->expenses->getExpensesByUserPaginated($userId,$pageNumber, $pageSize, $year, $month);
-        return $expenses;
+        $arr= $this->expenses->getExpensesByUserPaginated($userId,$pageNumber, $pageSize, $year, $month);
+        return $arr;
     }
 
     public function create(
