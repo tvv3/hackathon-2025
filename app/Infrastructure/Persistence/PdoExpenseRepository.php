@@ -117,10 +117,15 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
 
     }
 
-    public function listExpenditureYears(User $user): array
+    public function listExpenditureYears(int $userId): array
     {
         // TODO: Implement listExpenditureYears() method.
-        return [];
+        $sql="select distinct strftime('%Y', date) as year from expenses where user_id=:user_id order by year desc";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':user_id' => $userId]);
+       
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
     public function sumAmountsByCategory(array $criteria): array

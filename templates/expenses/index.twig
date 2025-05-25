@@ -35,9 +35,12 @@
                 {# TODO: remove mock data below, pass actual years with expenses from the controller #}
                 <select name="year" id="year"
                         class="shadow border rounded py-2 px-3 text-gray-400 leading-tight focus:outline-none focus:shadow-outline">
-                    <option value="2025" selected>2025</option>
+                    <!--option value="2025" selected>2025</option>
                     <option value="2024">2024</option>
-                    <option value="2023">2023</option>
+                    <option value="2023">2023</option-->
+                    {% for year in years %}
+                      <option value="{{year}}" {% if year==first_year %} selected {% endif %}>{{year}}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div>

@@ -56,6 +56,18 @@ class ExpenseController extends BaseController
          $arr = $this->expenseService->list($userId, $page, $pageSize, $year, $month);
          $expenses=$arr[0];
          $totalPages=$arr[1]<=0?1:$arr[1];
+         
+         if ((array_key_exists(2,$arr))&&(is_array($arr[2]))&&($arr[2]!=[]))
+         {
+           $years=$arr[2];
+         }
+         else 
+         {//if i delete all data arr[2] can be []; then i will sent the implicitYear to the twig
+         $implicitYear=(int)date('Y');
+         $years=array('0'=>$implicitYear);//at least one year will be send to the twig
+         }
+         //$years=array_reverse($years);
+         $first_year=$years[0];
         return $this->render($response, 'expenses/index.twig', [
             'expenses' => $expenses,
             'page'     => $page,
@@ -63,6 +75,8 @@ class ExpenseController extends BaseController
             'total' => $totalPages,
             'flash_success' =>$flash_success,
             'flash_error' =>$flash_error,
+            'years'=>$years,
+            'first_year'=>$first_year,
         ]);
     }
 

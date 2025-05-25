@@ -23,6 +23,9 @@ class ExpenseService
         //var_dump($year);
         // TODO: implement this and call from controller to obtain paginated list of expenses
         $arr= $this->expenses->getExpensesByUserPaginated($userId,$pageNumber, $pageSize, $year, $month);
+        
+        $years=$this->expenses->listExpenditureYears($userId);
+        $arr[]=$years;
         return $arr;
     }
 
