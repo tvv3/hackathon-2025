@@ -91,7 +91,12 @@ class ExpenseController extends BaseController
         unset($_SESSION['flash_success']);
         $flash_error = $_SESSION['flash_error'] ?? null;
         unset($_SESSION['flash_error']);
-        $categories = $_ENV['APP_CATEGORIES'] ?? ['Any'];
+        $categories = $_ENV['APP_CATEGORIES'] ?? null;
+        if (!$categories) {$categories=["Any"];}
+        else{
+          $categories=json_decode($categories, true);
+        }
+        //var_dump($categories);
         return $this->render($response, 'expenses/create.twig', 
                 ['categories' => $categories,
                  'flash_success'=>$flash_success,
