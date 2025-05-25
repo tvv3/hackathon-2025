@@ -8,7 +8,7 @@ use App\Domain\Service\ExpenseService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
-
+use Psr\Http\Message\UploadedFileInterface;
 class ExpenseController extends BaseController
 {
     private const PAGE_SIZE = 20;
@@ -35,7 +35,10 @@ class ExpenseController extends BaseController
         if (!$user) {
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
-        $userId = $_SESSION['user']['id']; // TODO: obtain logged-in user ID from session
+        $userId = $_SESSION['user']['id']?? null; // TODO: obtain logged-in user ID from session
+        if (!$userId) {
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
         $page = (int)($request->getQueryParams()['page'] ?? 1);
         $pageSize = (int)($request->getQueryParams()['pageSize'] ?? self::PAGE_SIZE);
 
@@ -116,19 +119,33 @@ class ExpenseController extends BaseController
         return $response;
     }
 
-    public function importFromCsv(Request $request, Response $response): int
+    public function importFromCsv(Request $request, Response $response): Response
     {
-        $user=$_SESSION['user']['id']??null;
-        $parsedBody = $request->getParsedBody();
-        $csvFile = $parsedBody['csv'] ?? null;
+        $userId=(int)$_SESSION['user']['id']??null;
+        $file = $request->getUploadedFiles();
+        $csvFile = $file['csv'] ?? null;
 
-        if ($user)
+        if (($userId)&&($csvFile instanceof UploadedFileInterface)&&($csvFile->getError() === UPLOAD_ERR_OK))
         {
-        $nrRows=$this->expenseService->importFromCsv($user, $csvFile);
-        return $nrRows;
-        //$response->withHeader('Location', '/expenses')->withStatus(302);
+        $arr=$this->expenseService->importFromCsv($userId,  $csvFile);
+        $message = sprintf('Imported: %d, Duplicates: %d', $arr[0], $arr[1]);
+
+        //$response->getBody()->write($message);
+         //$_SESSION['flash'] = $message;
+
+        //return $response
+          //  ->withHeader('Location', '/expenses')
+            //->withStatus(302);
+
+            $response->getBody()->write($message);
+    return $response
+        ->withStatus(400)
+        ->withHeader('Content-Type', 'text/plain');
         }
-        return 0;
+        $response->getBody()->write('No import');
+    return $response
+        ->withStatus(400)
+        ->withHeader('Content-Type', 'text/plain');
     }
   
 }

@@ -41,5 +41,5 @@ interface ExpenseRepositoryInterface
     ?int $month = null
 ): array;
 
-  
+    public function checkAlreadyExists(Expense $expense): bool;
 }

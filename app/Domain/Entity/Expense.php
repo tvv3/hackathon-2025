@@ -13,7 +13,7 @@ final class Expense
         public int $userId,
         public DateTimeImmutable $date,
         public string $category,
-        public int $amountCents,
+        public float $amountCents,
         public string $description,
     ) {}
 }

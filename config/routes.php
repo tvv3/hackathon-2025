@@ -14,7 +14,7 @@ use Slim\Routing\RouteCollectorProxy;
 return static function (App $app) {
     //my test routes
      $app->get('/home2/{lang}', [Home2Controller::class, 'sayHello']);
-
+     
     //end my test routes
 
     $app->get('/register', [AuthController::class, 'showRegister']);
@@ -27,11 +27,14 @@ return static function (App $app) {
         $firewalled->get('/', [DashboardController::class, 'index']);
         $firewalled->group('/expenses', function (RouteCollectorProxy $expense) {
             $expense->get('', [ExpenseController::class, 'index']);
+            $expense->post('/import', [ExpenseController::class, 'importFromCsv']);
+            //new import route must be put before dinamic routes cause of shadowing problem
             $expense->get('/create', [ExpenseController::class, 'create']);
             $expense->post('', [ExpenseController::class, 'store']);
             $expense->get('/{id}/edit', [ExpenseController::class, 'edit']);
             $expense->post('/{id}', [ExpenseController::class, 'update']);
             $expense->post('/{id}/delete', [ExpenseController::class, 'destroy']);
+         
         });
     })
         // The middleware below ensures that only a logged-in user has access to the firewalled routes

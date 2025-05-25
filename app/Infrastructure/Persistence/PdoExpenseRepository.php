@@ -43,7 +43,7 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
             ':user_id' => $expense->userId,
-            ':date' => $expense->date->format('Y-m-d'),
+            ':date' => $expense->date->format('Y-m-d H:i:s'),
             ':category' => $expense->category,
             ':amount_cents' => $expense->amountCents,
             ':description' => $expense->description,
@@ -57,7 +57,7 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
             ':user_id' => $expense->userId,
-            ':date' => $expense->date->format('Y-m-d'),
+            ':date' => $expense->date->format('Y-m-d H:i:s'),
             ':category' => $expense->category,
             ':amount_cents' => $expense->amountCents,
             ':description' => $expense->description,
@@ -127,49 +127,39 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
     }
 
     //nou
-
     public function getExpensesByUserPaginated(
     int $userId,
-    int $page=1,
-    int $pageSize=20,
+    int $page = 1,
+    int $pageSize = 20,
     ?int $year = null,
     ?int $month = null
 ): array {
     $offset = ($page - 1) * $pageSize;
 
     $sql = 'SELECT * FROM expenses WHERE user_id = :user_id';
-    $params = ['user_id' => $userId];
+    $params = [':user_id' => $userId];
 
     if ($year !== null) {
         $sql .= ' AND strftime(\'%Y\', date) = :year';
-        $params['year'] = (string)$year;
+        $params[':year'] = (string)$year;
     }
 
     if ($month !== null) {
-        // Month formatted as zero-padded 2-digit string: '01', '02', ..., '12'
         $sql .= ' AND strftime(\'%m\', date) = :month';
-        $params['month'] = str_pad((string)$month, 2, '0', STR_PAD_LEFT);
+        $params[':month'] = str_pad((string)$month, 2, '0', STR_PAD_LEFT);
     }
 
     $sql .= ' ORDER BY date DESC LIMIT :limit OFFSET :offset';
 
-    // Prepare statement
+    $params[':limit'] = $pageSize;
+    $params[':offset'] = $offset;
+
+    // Prepare and execute with params
     $stmt = $this->pdo->prepare($sql);
-
-    // Bind params, including LIMIT and OFFSET as integers (PDO requires bindValue for these)
-    $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-
-    if ($year !== null) {
-        $stmt->bindValue(':year', (string)$year, PDO::PARAM_STR);
+    foreach ($params as $key => $value) {
+        $type = is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR;
+        $stmt->bindValue($key, $value, $type);
     }
-
-    if ($month !== null) {
-        $stmt->bindValue(':month', str_pad((string)$month, 2, '0', STR_PAD_LEFT), PDO::PARAM_STR);
-    }
-
-    $stmt->bindValue(':limit', $pageSize, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-
     $stmt->execute();
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -187,9 +177,47 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
     }
 
     return $expenses;
-   }
+}
 
+   
+    public function checkAlreadyExists(Expense $expense): bool
+    {
+        //var_dump($expense->date);
+        
+        $sql = 'SELECT count(*) as nr FROM expenses WHERE
+         user_id = :user_id and date=:mydate and category=:category
+         and amount_cents=:amount_cents and description=:mydescription;';
+    
+        // Prepare statement
+    $stmt = $this->pdo->prepare($sql);
 
+    // Bind params, including LIMIT and OFFSET as integers (PDO requires bindValue for these)
+    // 3. Bind parameters
+    $dateString=$expense->date->format('Y-m-d H:i:s');
+    $amountString=(string)$expense->amountCents;
+    $stmt->bindValue(':user_id', $expense->userId, PDO::PARAM_INT);
+    $stmt->bindValue(':mydate', $dateString, PDO::PARAM_STR);
+    $stmt->bindValue(':category', $expense->category, PDO::PARAM_STR);
+    $stmt->bindValue(':amount_cents', $amountString, PDO::PARAM_STR);
+    $stmt->bindValue(':mydescription', $expense->description, PDO::PARAM_STR);
+
+    /*
+    var_dump([
+    'user_id' => $expense->userId,
+    'date' => $dateString,
+    'category' => $expense->category,
+    'amount_cents' => $expense->amountCents,
+    'description' => $expense->description,
+]);*/
+    // 4. Execute the query
+    $stmt->execute();
+
+    // 5. Fetch result
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+      if ($result['nr']==0) return false;
+      //else
+      return true;
+    }
    
 
 }

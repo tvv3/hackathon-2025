@@ -18,7 +18,7 @@ class ExpenseService
     ) {}
 
     public function list(int $userId, int $pageNumber,
-     int $pageSize, int $year, int $month): array
+     int $pageSize, ?int $year, ?int $month): array
     {
         // TODO: implement this and call from controller to obtain paginated list of expenses
         $expenses= $this->expenses->getExpensesByUserPaginated($userId,$pageNumber, $pageSize, $year, $month);
@@ -57,10 +57,10 @@ class ExpenseService
         return 0; // number of imported rows
     }
 */
-    public function importFromCsv(int $userId, UploadedFileInterface $csvFile): int
+    public function importFromCsv(int $userId, UploadedFileInterface $csvFile): array
   {
     $importedCount = 0;
-
+    $csvIgnoredDuplicates=0;
     // Open the CSV file stream
     $stream = $csvFile->getStream();
 
@@ -107,8 +107,8 @@ class ExpenseService
 
         // Parse amount - convert to cents (int)
         // Assuming amount in decimal with dot, e.g. "123.45"
-        //$amountFloat = (float) $amountStr;
-        //$amountCents = (int) round($amountFloat * 100);
+         $amount = (float) $amount;
+        
 
         if ($amount <= 0) {
             continue;
@@ -128,7 +128,15 @@ class ExpenseService
             $amount,
             $description
         );
+        //check duplicated row
 
+        if ($this->expenses->checkAlreadyExists($expense))
+        {
+            $csvIgnoredDuplicates++;
+          //  var_dump($csvIgnoredDuplicates);
+            continue;
+        }
+        //var_dump($csvIgnoredDuplicates);
         // Save expense
         $this->expenses->save($expense);
 
@@ -137,6 +145,6 @@ class ExpenseService
 
     fclose($handle);
 
-    return $importedCount;
+    return [$importedCount, $csvIgnoredDuplicates];
    }
 }
