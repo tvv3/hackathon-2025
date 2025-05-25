@@ -36,6 +36,7 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
 
     public function save(Expense $expense): void
 {
+    var_dump($expense->amountCents);
     if ($expense->id === null) {
         // Insert new expense
         $sql = 'INSERT INTO expenses (user_id, date, category, amount_cents, description) 
@@ -280,7 +281,7 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
         (int)$row['user_id'],
         new \DateTimeImmutable($row['date']),
         $row['category'],
-        (float)$row['amount_cents'],
+        (int)$row['amount_cents'],
         $row['description']
     );
     }

@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use Psr\Http\Message\UploadedFileInterface;
+use DateTimeImmutable;
 class ExpenseController extends BaseController
 {
     private const PAGE_SIZE = 1;
@@ -86,8 +87,16 @@ class ExpenseController extends BaseController
 
         // Hints:
         // - obtain the list of available categories from configuration and pass to the view
-
-        return $this->render($response, 'expenses/create.twig', ['categories' => []]);
+        $flash_success = $_SESSION['flash_success'] ?? null;
+        unset($_SESSION['flash_success']);
+        $flash_error = $_SESSION['flash_error'] ?? null;
+        unset($_SESSION['flash_error']);
+        $categories = $_ENV['APP_CATEGORIES'] ?? ['Any'];
+        return $this->render($response, 'expenses/create.twig', 
+                ['categories' => $categories,
+                 'flash_success'=>$flash_success,
+                 'flash_error'=>$flash_error,
+                                     ]);
     }
 
     public function store(Request $request, Response $response): Response
@@ -100,7 +109,80 @@ class ExpenseController extends BaseController
         // - rerender the "expenses.create" page with included errors in case of failure
         // - redirect to the "expenses.index" page in case of success
 
-        return $response;
+        $data = $request->getParsedBody();
+        $userId=$_SESSION['user']['id']??null;
+        if (!$userId)   
+        {
+            //$_SESSION['flash_error']='You are not logged in!';
+            //mytodo: to add flash messages to the login twig; to unset them at showlogin
+            //redirect to login
+            return $response
+            ->withHeader('Location', '/login')
+            ->withStatus(302);
+        }
+        
+       // Sanitize 
+       $expenseData = [
+         'description' => trim($data['description'] ?? ''),
+         'amount'      => intval($data['amount']) ?? 0,
+         'date'        => $data['date']?? null,//same format from twig and below
+         'category'    => trim($data['category'] ?? ''),
+        ];
+
+        $expenseData['date'] = DateTimeImmutable::createFromFormat('Y-m-d', $expenseData['date']);
+
+        if ($expenseData['date']===false)
+        {
+            $_SESSION['flash_error']=$data['date'].'The format for the date is wrong!';
+            //mytodo: to add flash messages to the expenses.create.twig; to unset them at showlogin
+            //redirect to login
+            return $response
+            ->withHeader('Location', '/expenses/create')
+            ->withStatus(302); 
+        }
+        //we have step="0.01" in twig so if i put 12.35 the price will pe 0.12 euro and in database 12 cents!
+        //mytodo: we might have to adjust the import csv 
+        //so here it must be an int value introduced 
+        if ($expenseData['amount']<=0) 
+        {
+            $_SESSION['flash_error']=$expenseData['amount'].'The amount is not greater than 0!';
+            //mytodo: to add flash messages to the expenses.create.twig; to unset them at showlogin
+            //redirect to login
+            return $response
+            ->withHeader('Location', '/expenses/create')
+            ->withStatus(302); 
+        }
+        if ($expenseData['amount']*100!=floor($expenseData['amount']*100))
+        {
+           $_SESSION['flash_error']='The amount can have at most 2 decimals!';
+            //mytodo: to add flash messages to the expenses.create.twig; to unset them at showlogin
+            //redirect to login
+            return $response
+            ->withHeader('Location', '/expenses/create')
+            ->withStatus(302); 
+        }
+             //public function create(
+        
+        $message= $this->expenseService->create($userId, $expenseData['amount'],
+              $expenseData['description'],$expenseData['date'],
+              $expenseData['category']            
+          );
+
+        if ($message!='saved')
+        {
+        $_SESSION['flash_error']=$message;
+        // Option 1: Redirect with success message
+        return $response
+            ->withHeader('Location', '/expenses/create')
+            ->withStatus(302);
+        }
+        //else
+         $_SESSION['flash_success']='Expense added successfully!';
+        // Option 1: Redirect with success message
+        return $response
+            ->withHeader('Location', '/expenses')
+            ->withStatus(302);
+
     }
 
     public function edit(Request $request, Response $response, array $routeParams): Response

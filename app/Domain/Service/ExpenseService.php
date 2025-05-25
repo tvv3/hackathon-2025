@@ -30,17 +30,22 @@ class ExpenseService
     }
 
     public function create(
-        User $user,
+        int $userId,
         float $amount,
         string $description,
         DateTimeImmutable $date,
         string $category,
-    ): void {
+    ): string {
         // TODO: implement this to create a new expense entity, perform validation, and persist
+         if (!is_float($amount) || $amount <= 0) {
+            return("Invalid amount.");
+        }
 
         // TODO: here is a code sample to start with
-        $expense = new Expense(null, $user->id, $date, $category, (int)$amount, $description);
+        $expense = new Expense(null, $userId, $date, $category, (int)$amount, $description);
         $this->expenses->save($expense);
+
+        return "saved";
     }
 
     public function update(
@@ -111,7 +116,7 @@ class ExpenseService
 
         // Parse amount - convert to cents (int)
         // Assuming amount in decimal with dot, e.g. "123.45"
-         $amount = (float) $amount;
+         $amount = (int) $amount;
         
 
         if ($amount <= 0) {
@@ -129,7 +134,7 @@ class ExpenseService
             $userId,
             $date,
             $category,
-            $amount,
+            $amount*100,//HERE the amount is converted to cents ; *100; atention in the csv the value is in euro and in the database it will be in cents !!!
             $description
         );
         //check duplicated row
