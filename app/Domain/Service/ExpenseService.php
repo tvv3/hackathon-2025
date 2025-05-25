@@ -31,13 +31,13 @@ class ExpenseService
 
     public function create(
         int $userId,
-        float $amount,
+        int $amount,
         string $description,
         DateTimeImmutable $date,
         string $category,
     ): string {
         // TODO: implement this to create a new expense entity, perform validation, and persist
-         if (!is_float($amount) || $amount <= 0) {
+         if (!is_int($amount) || $amount <= 0) {
             return("Invalid amount.");
         }
 
@@ -50,12 +50,21 @@ class ExpenseService
 
     public function update(
         Expense $expense,
-        float $amount,
+        int $amount,
         string $description,
         DateTimeImmutable $date,
         string $category,
-    ): void {
+    ): string {
         // TODO: implement this to update expense entity, perform validation, and persist
+        if ($amount <= 0) {
+            return("Invalid amount.");
+        }
+
+        // TODO: here is a code sample to start with
+        $expense = new Expense($expense->id, $expense->userId, $date, $category, (int)$amount, $description);
+        $this->expenses->save($expense);
+
+        return "saved";
     }
 /*
     public function importFromCsv(User $user, UploadedFileInterface $csvFile): int

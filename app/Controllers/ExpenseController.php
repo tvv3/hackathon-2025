@@ -69,6 +69,7 @@ class ExpenseController extends BaseController
          }
          //$years=array_reverse($years);
          $first_year=$years[0];
+         //var_dump($month);//0 not null
         return $this->render($response, 'expenses/index.twig', [
             'expenses' => $expenses,
             'page'     => $page,
@@ -78,6 +79,8 @@ class ExpenseController extends BaseController
             'flash_error' =>$flash_error,
             'years'=>$years,
             'first_year'=>$first_year,
+            'year'=>$year,
+            'month'=>$month,
         ]);
     }
 
@@ -198,10 +201,43 @@ class ExpenseController extends BaseController
         // - obtain the list of available categories from configuration and pass to the view
         // - load the expense to be edited by its ID (use route params to get it)
         // - check that the logged-in user is the owner of the edited expense, and fail with 403 if not
+        
+        //$expense = ['id' => 1];
 
-        $expense = ['id' => 1];
+        //return $this->render($response, 'expenses/edit.twig', ['expense' => $expense, 'categories' => []]);
 
-        return $this->render($response, 'expenses/edit.twig', ['expense' => $expense, 'categories' => []]);
+        $flash_success = $_SESSION['flash_success'] ?? null;
+        unset($_SESSION['flash_success']);
+        $flash_error = $_SESSION['flash_error'] ?? null;
+        unset($_SESSION['flash_error']);
+        $categories = $_ENV['APP_CATEGORIES'] ?? null;
+        if (!$categories) {$categories=["Any"];}
+        else{
+          $categories=json_decode($categories, true);
+        }
+        //var_dump($categories);
+         $userId = $_SESSION['user']['id'] ?? null;
+         $expenseId = (int)($routeParams['id'] ?? 0);
+
+      if ((!$userId) || (!$expenseId)) {
+        $_SESSION['flash_error']='Bad request';
+        return $response->withHeader('Location', '/expenses')
+            ->withStatus(302);//bad request
+       }
+        $expense=$this->expenseService->getExpenseById($expenseId);
+        if ((!$expense)||(($expense)&&($userId!=$expense->userId)))
+        {
+           $_SESSION['flash_error']='Not your request or expense not found!';
+           return $response->withHeader('Location', '/expenses')
+            ->withStatus(302);//bad request 
+        }
+        return $this->render($response, 'expenses/edit.twig', 
+                ['expense' => $expense,
+                 'myexpensedate' => $expense->date->format('Y-m-d'),
+                 'categories' => $categories,
+                 'flash_success'=>$flash_success,
+                 'flash_error'=>$flash_error,
+                                     ]);
     }
 
     public function update(Request $request, Response $response, array $routeParams): Response
@@ -209,14 +245,108 @@ class ExpenseController extends BaseController
         // TODO: implement this action method to update an existing expense
 
         // Hints:
-        // - load the expense to be edited by its ID (use route params to get it)
-        // - check that the logged-in user is the owner of the edited expense, and fail with 403 if not
-        // - get the new values from the request and prepare for update
+        //d - load the expense to be edited by its ID (use route params to get it)
+        //d - check that the logged-in user is the owner of the edited expense, and fail with 403 if not
+        //d - get the new values from the request and prepare for update
         // - update the expense entity with the new values
         // - rerender the "expenses.edit" page with included errors in case of failure
         // - redirect to the "expenses.index" page in case of success
 
-        return $response;
+       // return $response;
+
+       $data = $request->getParsedBody();
+        $userId=$_SESSION['user']['id']??null;
+        if (!$userId)   
+        {
+            //$_SESSION['flash_error']='You are not logged in!';
+            //mytodo: to add flash messages to the login twig; to unset them at showlogin
+            //redirect to login
+            return $response
+            ->withHeader('Location', '/login')
+            ->withStatus(302);
+        }
+
+         $expenseId = (int)($routeParams['id'] ?? 0);
+
+      if ((!$userId) || (!$expenseId)) {
+        $_SESSION['flash_error']='Bad request';
+        return $response->withHeader('Location', '/expenses')
+            ->withStatus(302);//bad request
+       }
+        $expense=$this->expenseService->getExpenseById($expenseId);
+        if ((!$expense)||(($expense)&&($userId!=$expense->userId)))
+        {
+           $_SESSION['flash_error']='Not your request or expense not found!';
+           return $response->withHeader('Location', '/expenses')
+            ->withStatus(302);//bad request 
+        }
+        
+       // Sanitize 
+       $expenseData = [
+         'description' => trim($data['description'] ?? ''),
+         'amount'      => intval($data['amount']) ?? 0,
+         'date'        => $data['date']?? null,//same format from twig and below
+         'category'    => trim($data['category'] ?? ''),
+        ];
+
+        $expenseData['date'] = DateTimeImmutable::createFromFormat('Y-m-d', $expenseData['date']);
+
+        if ($expenseData['date']===false)
+        {
+            $_SESSION['flash_error']=$data['date'].'The format for the date is wrong!';
+            //mytodo: to add flash messages to the expenses.create.twig; to unset them at showlogin
+            //redirect to login
+            return $response
+            ->withHeader('Location', '/expenses/'.$expenseId.'/edit')
+            ->withStatus(302); 
+        }
+        //we have step="0.01" in twig so if i put 12.35 the price will pe 0.12 euro and in database 12 cents!
+        //mytodo: we might have to adjust the import csv 
+        //so here it must be an int value introduced 
+        if ($expenseData['amount']<=0) 
+        {
+            $_SESSION['flash_error']=$expenseData['amount'].'The amount is not greater than 0!';
+            //mytodo: to add flash messages to the expenses.create.twig; to unset them at showlogin
+            //redirect to login
+            return $response
+            ->withHeader('Location', '/expenses/'.$expenseId.'/edit')
+            ->withStatus(302); 
+        }
+        if ($expenseData['amount']*100!=floor($expenseData['amount']*100))
+        {
+           $_SESSION['flash_error']='The amount can have at most 2 decimals!';
+            //mytodo: to add flash messages to the expenses.create.twig; to unset them at showlogin
+            //redirect to login
+            return $response
+            ->withHeader('Location', '/expenses/'.$expenseId.'/edit')
+            ->withStatus(302); 
+        }
+             //public function create(
+        
+       /* $message= $this->expenseService->create($userId, $expenseData['amount'],
+              $expenseData['description'],$expenseData['date'],
+              $expenseData['category']            
+          );*/
+
+        $message= $this->expenseService->update($expense, $expenseData['amount'],
+              $expenseData['description'],$expenseData['date'],
+              $expenseData['category']            
+          );
+
+        if ($message!='saved')
+        {
+        $_SESSION['flash_error']=$message;
+        // Option 1: Redirect with success message
+        return $response
+            ->withHeader('Location', '/expenses/'.$expenseId.'/edit')
+            ->withStatus(302);
+        }
+        //else
+         $_SESSION['flash_success']='Expense updated successfully!';
+        // Option 1: Redirect with success message
+        return $response
+            ->withHeader('Location', '/expenses')
+            ->withStatus(302);
     }
 
     public function destroy(Request $request, Response $response, array $routeParams): Response

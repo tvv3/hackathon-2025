@@ -38,8 +38,8 @@
                     <!--option value="2025" selected>2025</option>
                     <option value="2024">2024</option>
                     <option value="2023">2023</option-->
-                    {% for year in years %}
-                      <option value="{{year}}" {% if year==first_year %} selected {% endif %}>{{year}}</option>
+                    {% for myoptionyear in years %}
+                      <option value="{{myoptionyear}}"  {% if myoptionyear==year %} selected {% endif %}>{{myoptionyear}}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -47,18 +47,18 @@
                 <label for="month" class="block text-gray-300 text-sm font-bold mb-2">Month</label>
                 <select name="month" id="month"
                         class="shadow border rounded py-2 px-3 text-gray-400 leading-tight focus:outline-none focus:shadow-outline">
-                    <option value="1">January</option>
-                    <option value="2">February</option>
-                    <option value="3">March</option>
-                    <option value="4">April</option>
-                    <option value="5" selected>May</option>
-                    <option value="6">June</option>
-                    <option value="7">July</option>
-                    <option value="8">August</option>
-                    <option value="9">September</option>
-                    <option value="10">October</option>
-                    <option value="11">November</option>
-                    <option value="12">December</option>
+                    <option value="1"  {% if 1==month %} selected {% endif %}>January</option>
+                    <option value="2" {% if 2==month %} selected {% endif %}>February</option>
+                    <option value="3" {% if 3==month %} selected {% endif %}>March</option>
+                    <option value="4" {% if 4==month %} selected {% endif %}>April</option>
+                    <option value="5" {% if 5==month %} selected {% endif %} selected>May</option>
+                    <option value="6" {% if 6==month %} selected {% endif %}>June</option>
+                    <option value="7" {% if 7==month %} selected {% endif %}>July</option>
+                    <option value="8" {% if 8==month %} selected {% endif %}>August</option>
+                    <option value="9" {% if 9==month %} selected {% endif %}>September</option>
+                    <option value="10" {% if 10==month %} selected {% endif %}>October</option>
+                    <option value="11" {% if 11==month %} selected {% endif %}>November</option>
+                    <option value="12" {% if 12==month %} selected {% endif %}>December</option>
                 </select>
             </div>
             <div class="self-end">
@@ -89,7 +89,7 @@
                     <td class="py-2 px-4">{{ expense.category }}</td>
                     <td class="py-2 px-4">
                         {# TODO: Configure the necessary href attribute #}
-                        <a href="#"
+                        <a href="/expenses/{{expense.id}}/edit"
                            class="text-blue-500 hover:text-blue-400 mr-2">Edit</a>
                         {# TODO: Configure the necessary form action #}
                         <form action="/expenses/{{expense.id}}/delete" method="POST" class="inline">
@@ -110,7 +110,7 @@
             {% if i == page %}
                  <span class="current-page" style="margin-right:10px">{{ i }}</span>
             {% else %}
-              <a href="/expenses?page={{ i }}{% if year is defined %}&year={{ year }}{% endif %}{% if month is defined %}&month={{ month }}{% endif %}"
+              <a href="/expenses?page={{ i }}{% if year is defined %}{% if year>0 %}&year={{ year }}{% endif %}{% endif %}{% if month is defined %}{% if month>0 %}&month={{ month }}{% endif %}{% endif %}"
                style="margin-right:10px; color:lightblue;"
               >
                 {{ i }}
@@ -121,7 +121,7 @@
         <div class="mt-1 flex justify-between">
             {% if total and page > 1 %}
                 {# TODO: fill in HREF #}
-                <a href="/expenses?page={{page-1}}{% if year is defined %}&year={{ year }}{% endif %}{% if month is defined %}&month={{ month }}{% endif %}" class="text-blue-500 hover:text-blue-400">Previous</a>
+                <a href="/expenses?page={{page-1}}{% if year is defined %}{% if year>0 %}&year={{ year }}{% endif %}{% endif %}{% if month is defined %}{% if month>0 %}&month={{ month }}{% endif %}{% endif %}" class="text-blue-500 hover:text-blue-400">Previous</a>
             {% else %}
                 <span></span>
             {% endif %}
@@ -130,7 +130,7 @@
              {% if page >= total %}
                 <span></span>
              {% else %}
-                <a href="/expenses?page={{page+1}}{% if year is defined %}&year={{ year }}{% endif %}{% if month is defined %}&month={{ month }}{% endif %}" class="text-blue-500 hover:text-blue-400">Next</a>
+                <a href="/expenses?page={{page+1}}{% if year is defined %}{% if year>0 %}&year={{ year }}{% endif %}{% endif %}{% if month is defined %}{% if month>0 %}&month={{ month }}{% endif %}{% endif %}" class="text-blue-500 hover:text-blue-400">Next</a>
              {% endif %}
         </div>
     </section>
