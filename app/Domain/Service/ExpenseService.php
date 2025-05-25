@@ -148,4 +148,15 @@ class ExpenseService
 
     return [$importedCount, $csvIgnoredDuplicates];
    }
+
+   public function getExpenseById(int $id): ?Expense
+  {
+    return $this->expenses->findById($id);
+   }
+
+  public function deleteExpense(int $id): void
+  {
+    $this->expenses->delete($id);
+  }
+
 }

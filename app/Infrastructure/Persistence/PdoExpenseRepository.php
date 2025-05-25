@@ -80,6 +80,7 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
         return [];
     }
 
+    
 
     public function countBy(array $criteria): int
     {
@@ -255,5 +256,28 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
       return true;
     }
    
+
+    public function findById(int $id): ?Expense
+    {
+    $sql = 'SELECT * FROM expenses WHERE id = :id';
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$row) {
+        return null;
+    }
+
+    return new Expense(
+        (int)$row['id'],
+        (int)$row['user_id'],
+        new \DateTimeImmutable($row['date']),
+        $row['category'],
+        (float)$row['amount_cents'],
+        $row['description']
+    );
+    }
 
 }

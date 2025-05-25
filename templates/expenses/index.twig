@@ -2,10 +2,24 @@
 {% block title %}Expenses{% endblock %}
 {% block content %}
 
+  
+
     {# TODO: remove mock data below, pass real expenses from the controller action #}
 
     <h1 class="text-2xl font-bold mb-4">Expenses</h1>
 
+        {% if flash_success %}
+       <div class="alert alert-success" style="padding-left:10px;background-color:green;">
+          {{ flash_success }}
+       </div>
+     {% endif %}
+
+      {% if flash_error %}
+       <div class="alert alert-danger" style="padding-left:10px;background-color:red;">
+          {{ flash_error }}
+       </div>
+     {% endif %}
+     
     {# TODO: Configure the necessary href attribute #}
     <a href=""
        class="inline-block mb-6 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
@@ -75,7 +89,7 @@
                         <a href="#"
                            class="text-blue-500 hover:text-blue-400 mr-2">Edit</a>
                         {# TODO: Configure the necessary form action #}
-                        <form action="#" method="POST" class="inline">
+                        <form action="/expenses/{{expense.id}}/delete" method="POST" class="inline">
                             <button type="submit"
                                     class="text-red-500 hover:text-red-400">Delete
                             </button>

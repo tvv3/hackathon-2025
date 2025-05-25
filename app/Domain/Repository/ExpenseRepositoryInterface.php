@@ -42,4 +42,6 @@ interface ExpenseRepositoryInterface
 ): array;
 
     public function checkAlreadyExists(Expense $expense): bool;
+
+    public function findById(int $id): ?Expense;
 }

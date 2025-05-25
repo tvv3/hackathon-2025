@@ -31,6 +31,11 @@ class ExpenseController extends BaseController
         // - use the expense service to fetch expenses for the current user
 
         // parse request parameters
+        $flash_success = $_SESSION['flash_success'] ?? null;
+        unset($_SESSION['flash_success']);
+        $flash_error = $_SESSION['flash_error'] ?? null;
+        unset($_SESSION['flash_error']);
+
         $user = $_SESSION['user'] ?? null;
         if (!$user) {
             return $response->withHeader('Location', '/login')->withStatus(302);
@@ -50,12 +55,14 @@ class ExpenseController extends BaseController
         $totalPages=1;
          $arr = $this->expenseService->list($userId, $page, $pageSize, $year, $month);
          $expenses=$arr[0];
-         $totalPages=$arr[1];
+         $totalPages=$arr[1]<=0?1:$arr[1];
         return $this->render($response, 'expenses/index.twig', [
             'expenses' => $expenses,
             'page'     => $page,
             'pageSize' => $pageSize,
             'total' => $totalPages,
+            'flash_success' =>$flash_success,
+            'flash_error' =>$flash_error,
         ]);
     }
 
@@ -120,8 +127,40 @@ class ExpenseController extends BaseController
         // - call the repository method to delete the expense
         // - redirect to the "expenses.index" page
 
-        return $response;
-    }
+     $userId = $_SESSION['user']['id'] ?? null;
+     $expenseId = (int)($routeParams['id'] ?? 0);
+
+     if (!$userId || !$expenseId) {
+        $response->getBody()->write('Bad request');
+        return $response->withStatus(400);//bad request
+      }
+
+    // Load the expense
+     $expense = $this->expenseService->getExpenseById($expenseId);
+
+     if (!$expense) {
+        $response->getBody()->write('Expense not found');
+        return $response->withStatus(404);
+      }
+
+    // Check if the expense belongs to the logged-in user
+      if ($expense->userId !== $userId) {
+        $response->getBody()->write('Forbidden');
+        return $response->withStatus(403);
+      }
+
+    // Delete the expense
+       $expenseIdDeleted=$expenseId;
+       $this->expenseService->deleteExpense($expenseId);
+
+       $_SESSION['flash_success'] = 'Expense with id='. $expenseIdDeleted.' deleted successfully.';
+
+    // Redirect to /expenses
+      return $response
+        ->withHeader('Location', '/expenses')
+        ->withStatus(302);
+   }
+    
 
     public function importFromCsv(Request $request, Response $response): Response
     {
@@ -131,25 +170,45 @@ class ExpenseController extends BaseController
 
         if (($userId)&&($csvFile instanceof UploadedFileInterface)&&($csvFile->getError() === UPLOAD_ERR_OK))
         {
+         $filename = $csvFile->getClientFilename();
+         $extension = pathinfo($filename, PATHINFO_EXTENSION);
+
+         if (strtolower($extension) !== 'csv') {
+           $_SESSION['flash_error'] = 'No import! The file must be a .csv file!';
+
+        return $response
+            ->withHeader('Location', '/expenses')
+            ->withStatus(302);  
+        }
+
+
         $arr=$this->expenseService->importFromCsv($userId,  $csvFile);
         $message = sprintf('Imported: %d, Duplicates: %d', $arr[0], $arr[1]);
 
         //$response->getBody()->write($message);
-         //$_SESSION['flash'] = $message;
+         $_SESSION['flash_success'] = $message;
 
-        //return $response
-          //  ->withHeader('Location', '/expenses')
-            //->withStatus(302);
-
+        return $response
+            ->withHeader('Location', '/expenses')
+            ->withStatus(302);
+             /*
             $response->getBody()->write($message);
     return $response
         ->withStatus(400)
         ->withHeader('Content-Type', 'text/plain');
+        */
         }
+         $_SESSION['flash_error'] = 'No import!';
+
+        return $response
+            ->withHeader('Location', '/expenses')
+            ->withStatus(302);
+        /*
         $response->getBody()->write('No import');
     return $response
         ->withStatus(400)
         ->withHeader('Content-Type', 'text/plain');
+        */
     }
   
 }
